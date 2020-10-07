@@ -1,14 +1,17 @@
 ---
 name: EVE
 on:
-  pull_request:
-    branches: [master]
+  pull_request_target:
+    branches:
+      - master
 
 jobs:
   test:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Test
         run: |
@@ -29,16 +32,28 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Adjust Version
+        run: |
+          git tag -a -m0.0.0-pr-${{ github.event.pull_request.number  }} 0.0.0-pr-${{ github.event.pull_request.number  }}
+          echo build > /tmp/target
       - name: Build packages
         run: |
           make pkgs
+      - name: Login into DockerHUB
+        if: github.actor == 'rvs' || github.actor == 'eriknordmark'
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u evebuild --password-stdin
+          echo push > /tmp/target
       - name: Build EVE
         run: |
-          make eve
-      - name: Build KVM rootfs
+          make LINUXKIT_PKG_TARGET="$(cat /tmp/target)" eve
+      - name: Build EVE for KVM
         run: |
-          make HV=kvm rootfs
+          rm -rf dist
+          make LINUXKIT_PKG_TARGET="$(cat /tmp/target)" HV=kvm eve
 
 # If all else fails, you may find solace here
 #  https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
