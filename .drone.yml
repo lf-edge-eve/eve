@@ -1,0 +1,19 @@
+---
+kind: pipeline
+type: exec
+name: default
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+- name: test
+  commands:
+  - cat /etc/*release
+  - uname -a
+  - env
+  - cat /proc/meminfo
+  - cat /proc/cpuinfo
+  - dmesg
+  - docker version
